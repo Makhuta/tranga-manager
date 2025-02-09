@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<main class="py-4">
+    <div class="container">
+        <table class="mx-auto alternate_color">
+            <thead>
+                <tr>
+                    <th class="text-center px-5">API name</th>
+                    <th class="text-center px-5">Connection</th>
+                    <th class="text-center px-5">Jobs</th>
+                    <th class="text-center px-5">Running</th>
+                    <th class="text-center px-5">Waiting</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for api in apis %}
+                <tr class="altering">
+                    <td class="text-center">
+                        <a href="{% url 'api' api.pk %}">
+                            {{api}}
+                        </a>
+                    </td>
+                    <td class="text-center">
+                        <div class="loader mx-auto" style="--loader-size: 24px; --loader-color: #3498db; --loader-bg: #f3f3f3;" id="loader_icon_{{ api.pk }}"></div>
+                        <i id="result_icon_{{ api.pk }}" style="font-size:24px"></i>
+                    </td>
+                    <td class="text-center">
+                        <div class="loader mx-auto" style="--loader-size: 24px; --loader-color: #3498db; --loader-bg: #f3f3f3;" id="loader_icon_monitor_{{ api.pk }}"></div>
+                        <p id="jobs_monitor_{{ api.pk }}"></p>
+                    </td>
+                    <td class="text-center">
+                        <div class="loader mx-auto" style="--loader-size: 24px; --loader-color: #3498db; --loader-bg: #f3f3f3;" id="loader_icon_running_{{ api.pk }}"></div>
+                        <p id="jobs_running_{{ api.pk }}"></p>
+                    </td>
+                    <td class="text-center">
+                        <div class="loader mx-auto" style="--loader-size: 24px; --loader-color: #3498db; --loader-bg: #f3f3f3;" id="loader_icon_waiting_{{ api.pk }}"></div>
+                        <p id="jobs_waiting_{{ api.pk }}"></p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            
+        </table>
+    </div>
+</main>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    function testConnection(ip, port, pk) {
+        let loadingDiv = document.getElementById(`loader_icon_${pk}`);
+        let resultDiv = document.getElementById(`result_icon_${pk}`);
+
+        if(loadingDiv.hidden) {
+            loadingDiv.style.display = "initial";
+        }
+
+        if(!resultDiv.hidden) {
+            resultDiv.style.display = "none";
+            resultDiv.classList.remove("fa", "fa-check", "fas", "fa-times");
+        }
+
+        if (!ip || !port) {
+            resultDiv.classList.add("fas", "fa-times");
+            return;
+        }
+
+        fetch(`{% url 'test' %}?ip=${ip}&port=${port}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.classList.add("fa", "fa-check");
+                    loadingDiv.style.display = "none";
+                    resultDiv.style.display = "initial";
+                } else {
+                    resultDiv.classList.add("fas", "fa-times");
+                    loadingDiv.style.display = "none";
+                    resultDiv.style.display = "initial";
+                }
+            })
+            .catch(error => {
+                resultDiv.classList.add("fas", "fa-times");
+                loadingDiv.style.display = "none";
+                resultDiv.style.display = "initial";
+            });
+        setTimeout(() => {
+            testConnection(ip, port, pk);
+        }, 60000);
+    }
+
+    async function fetchData(address, d=[]) {
+        try {
+            let response = await fetch(address);
+            let data = await response.json();
+            return data.success;
+        }
+        catch (error){
+            return d;
+        }
+    }
+
+    async function getInfo(url, key, pk) {
+        let loadingDiv = document.getElementById(`loader_icon_${key}_${pk}`);
+        let resultDiv = document.getElementById(`jobs_${key}_${pk}`);
+
+        if(loadingDiv.hidden) {
+            loadingDiv.style.display = "initial";
+        }
+
+        if(!resultDiv.hidden) {
+            resultDiv.style.display = "none";
+        }
+
+        let data = await fetchData(url, []);
+
+        resultDiv.innerText = data.length;
+        resultDiv.style.display = "initial";
+        loadingDiv.style.display = "none";
+
+        setTimeout(() => {
+            getInfo(url, key, pk);
+        }, 60000);
+    }
+
+    {% for api in apis %}
+    testConnection("{{ api.ip }}","{{ api.port }}","{{ api.pk }}");
+    getInfo("{% url 'jobs_monitor' api.pk %}", "monitor", "{{ api.pk }}");
+    getInfo("{% url 'jobs_running' api.pk %}", "running", "{{ api.pk }}");
+    getInfo("{% url 'jobs_waiting' api.pk %}", "waiting", "{{ api.pk }}");
+    {% endfor %}
+</script>
+{% endblock %}

@@ -1,0 +1,5 @@
+# Generated
+*__pycache__
+*db.sqlite3
+tranga-manager/static/*
+venv/*

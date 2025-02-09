@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}{{ api }}{% endblock %}
+
+{% block content %}
+<header>
+    <nav class="navbar navbar-expand-lg tertiary-color accent-color px-2">
+        <div class="collapse navbar-collapse" id="navbarNavDropdown">
+            <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
+                <li class="nav-item dropdown my-auto">
+                    <b>{{ api }}</b>
+                </li>
+                <li class="nav-item dropdown pl-2 my-auto">
+                    <div class="loader" style="--loader-size: 24px; --loader-color: #3498db; --loader-bg: #f3f3f3;" id="loader_icon"></div>
+                    <i id="result_icon" style="font-size:24px"></i>
+                </li>
+                <li class="nav-item dropdown pl-5">
+                    <div class="row g-2">
+                        <!-- Connectors Selector -->
+                        <div class="col-md-3 my-auto">
+                            <select id="connectorSelect" class="form-select">
+                                {% for connector in connectors %}
+                                <option value="{{ connector }}">{{ connector }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Search Input -->
+                        <div class="col-md-4 my-auto">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Enter search term">
+                        </div>
+                
+                        <!-- Search Button -->
+                        <div class="col-md-2 d-flex align-items-end my-auto">
+                            <button class="btn btn-primary w-100" onclick="searchManga()">Search</button>
+                        </div>
+                
+                        <!-- Languages Selector -->
+                        <div class="col-md-3 my-auto">
+                            <select id="languageSelect" class="form-select">
+                                <option value="en">English</option>
+                                <option value="it">Italian</option>
+                                <option value="de">German</option>
+                            </select>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+            <form class="form-inline my-2 my-lg-0" id="delete-form" method="post" action="{% url 'api_delete' api.pk%}">
+                {% csrf_token %}
+                <button class="btn btn-outline-danger my-2 my-sm-0" type="submit">Delete <i class="fa fa-trash"></i></button>
+            </form>
+        </div>
+    </nav>
+</header>
+<main class="p-4">
+    <table class="w-100">
+        <tbody id="manga_table">
+        </tbody>
+    </table>
+</main>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    function testConnection(ip, port) {
+        let loadingDiv = document.getElementById("loader_icon");
+        let resultDiv = document.getElementById("result_icon");
+
+        if(loadingDiv.hidden) {
+            loadingDiv.style.display = "initial";
+        }
+
+        if(!resultDiv.hidden) {
+            resultDiv.style.display = "hidden";
+            resultDiv.classList.remove("fa", "fa-check", "fas", "fa-times");
+        }
+
+        if (!ip || !port) {
+            resultDiv.classList.add("fas", "fa-times");
+            return;
+        }
+
+        fetch(`{% url 'test' %}?ip=${ip}&port=${port}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.classList.add("fa", "fa-check");
+                    loadingDiv.style.display = "none";
+                    resultDiv.style.display = "initial";
+                } else {
+                    resultDiv.classList.add("fas", "fa-times");
+                    loadingDiv.style.display = "none";
+                    resultDiv.style.display = "initial";
+                }
+            })
+            .catch(error => {
+                resultDiv.classList.add("fas", "fa-times");
+                loadingDiv.style.display = "none";
+                resultDiv.style.display = "initial";
+            });
+        setTimeout(() => {
+            testConnection(ip, port);
+        }, 60000);
+    }
+
+    async function fetchData(address, d=[]) {
+        try {
+            let response = await fetch(address);
+            let data = await response.json();
+            return data.success;
+        }
+        catch (error){
+            return d;
+        }
+    }
+
+    function create_row(item, url, pk, connector, lang) {
+        const tr = document.createElement("tr");
+        tr.classList.add("altering");
+
+        const tableRow = document.createElement("table");
+        tableRow.classList.add("tg", "w-100", "h-100", "m-2")
+
+        tableRow.innerHTML = `
+        <tbody>
+            <tr>
+                <td style="cursor: pointer;"><img src="{% url 'manga_cover' %}?pk=${pk}&internalId=${item.internalId}" style="width: 10em; max-height: 15em;"></img></td>
+                <td class="h-100 w-100 p-2" style="height: 100%;">
+                    <table class="h-100 w-100">
+                        <tbody>
+                            <tr>
+                                <td class="w-75" colspan="4" style="cursor: pointer;">${item.sortName}</td>
+                                <td class="w-25">(${item.status})</td>
+                            </tr>
+                            <tr>
+                                <td class="w-75"  colspan="3">
+                                    <b>Description: </b></br>
+                                    ${item.description.substring(0, 512) + (item.description.length > 512 ? "..." : "")}
+                                </td>
+                                <td></td>
+                                <td>
+                                <form class="form-inline my-2 my-lg-0" id="monitor-form-${item.internalId}" method="post" action="{% url 'manga_monitor' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="pk" value="{{ api.pk }}">
+                                    <input type="hidden" name="connector" value="${connector}">
+                                    <input type="hidden" name="internalId" value="${item.internalId}">
+                                    <input type="hidden" name="interval" value="${'03:00:00'}">
+                                    <input type="hidden" name="translatedLanguage" value="${lang}">
+                                    <button class="btn btn-outline-success my-2 my-sm-0 monitor-button" type="button" data-item-id="${item.internalId}">Monitor <i class="fa fa-eye"></i></button>
+                                </form>    
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="w-75"  colspan="4"><b>Tags: </b>${Object.keys(item.tags).slice(0, 32).map((key) => item.tags[key]).join(", ")}</td>
+                                <td class="w-25">
+                                    <div id="response-message-${ item.internalId }"></div>    
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><a href="${item.websiteUrl}">${connector}</a></td>
+                                <td colspan="2"></td>
+                                <td colspan="2">${Object.keys(item.authors).slice(0, 8).map((key) => item.authors[key]).join(", ")}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+        `;
+        tr.appendChild(tableRow);
+
+        return tr;
+    }
+
+    async function searchManga() {
+        const connector = document.getElementById("connectorSelect").value;
+        const language = document.getElementById("languageSelect").value;
+        const searchTerm = document.getElementById("searchInput").value.trim();
+
+
+
+        let manga_div = document.getElementById(`manga_table`);
+
+        let data = await fetchData(`{% url 'manga_search' %}?pk={{ api.pk }}&connector=${connector}&title=${searchTerm}`, []);
+
+        let newChildren = [];
+        data.forEach(item => {
+            newChildren.push(create_row(item, "{% url 'manga' api.pk %}", {{ api.pk }}, connector, language));
+        });
+
+
+        manga_div.replaceChildren(...newChildren);
+        document.querySelectorAll('.monitor-button').forEach(button => {
+            button.addEventListener('click', function(event) {
+                const itemId = event.target.getAttribute('data-item-id');
+                
+                const form = document.getElementById(`monitor-form-${itemId}`);
+                const formData = new FormData(form);
+        
+                fetch("{% url 'manga_monitor' %}", {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const responseMessageElement = document.getElementById(`response-message-${itemId}`);
+                    if (data.success) {
+                        responseMessageElement.innerText = "Monitor started successfully!";
+                    } else {
+                        responseMessageElement.innerText = `Error: ${data.message}`;
+                    }
+                })
+                .catch(error => {
+                    const responseMessageElement = document.getElementById(`response-message-${itemId}`);
+                    responseMessageElement.innerText = "An error occurred.";
+                });
+            });
+        });
+    }
+
+    testConnection("{{ api.ip }}","{{ api.port }}");
+
+
+</script>
+{% endblock %}
