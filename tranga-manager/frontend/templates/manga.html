@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}{{ manga.sortName }}{% endblock %}
+
+{% block content %}
+<header>
+    <nav class="navbar navbar-expand-lg tertiary-color accent-color px-2">
+        <div class="collapse navbar-collapse" id="navbarNavDropdown">
+            <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
+                <li class="nav-item my-auto">
+                    <a href="{% url 'api' api.pk %}" style="text-decoration: inherit;"><b>{{ api }}</b></a>
+                </li>
+                <li class="nav-item pl-2 my-auto">
+                    <div class="loader" style="--loader-size: 24px; --loader-color: #3498db; --loader-bg: #f3f3f3;"
+                        id="loader_icon"></div>
+                    <i id="result_icon" style="font-size:24px"></i>
+                </li>
+                <li class="nav-item pl-5 my-auto">
+                    <b>{{ manga.sortName }}</b>
+                </li>
+            </ul>
+            <form class="form-inline my-2 my-lg-0" id="start-form" method="post"
+                action="{% url 'manga_start' api.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="connector" value="{{ connector }}">
+                <input type="hidden" name="internalId" value="{{ manga.internalId }}">
+                <input type="hidden" name="source_url" value="{% url 'manga' api.pk %}">
+                <button class="btn btn-outline-primary my-2 my-sm-0" type="submit">Start Job <i
+                        class="fa fa-play"></i></button>
+            </form>
+            <form class="form-inline my-2 my-lg-0 px-3" id="cancel-form" method="post"
+                action="{% url 'manga_cancel' api.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="connector" value="{{ connector }}">
+                <input type="hidden" name="internalId" value="{{ manga.internalId }}">
+                <input type="hidden" name="source_url" value="{% url 'manga' api.pk %}">
+                <button class="btn btn-outline-secondary my-2 my-sm-0" type="submit">Cancel Job <i
+                        class="fas fa-times"></i></button>
+            </form>
+            <form class="form-inline my-2 my-lg-0" id="delete-form" method="post"
+                action="{% url 'manga_delete' api.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="connector" value="{{ connector }}">
+                <input type="hidden" name="internalId" value="{{ manga.internalId }}">
+                <input type="hidden" name="source_url" value="{% url 'manga' api.pk %}">
+                <button class="btn btn-outline-danger my-2 my-sm-0" type="submit">Delete Job <i
+                        class="fa fa-trash"></i></button>
+            </form>
+        </div>
+    </nav>
+</header>
+
+<main class="p-4">
+    <table class="w-100" id="info_table">
+    </table>
+    <table class="w-100 mt-2">
+        <thead>
+            <tr>
+                <th class="text-center">Volume</th>
+                <th class="text-center">Chapter</th>
+                <th>Name</th>
+                <th>Filename</th>
+                <th>ID</th>
+                <th>URL</th>
+            </tr>
+        </thead>
+        <tbody id="chapters_table"></tbody>
+    </table>
+</main>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    function testConnection(ip, port) {
+        let loadingDiv = document.getElementById("loader_icon");
+        let resultDiv = document.getElementById("result_icon");
+
+        if (loadingDiv.hidden) {
+            loadingDiv.style.display = "initial";
+        }
+
+        if (!resultDiv.hidden) {
+            resultDiv.style.display = "hidden";
+            resultDiv.classList.remove("fa", "fa-check", "fas", "fa-times");
+        }
+
+        if (!ip || !port) {
+            resultDiv.classList.add("fas", "fa-times");
+            return;
+        }
+
+        fetch(`{% url 'test' %}?ip=${ip}&port=${port}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.classList.add("fa", "fa-check");
+                    loadingDiv.style.display = "none";
+                    resultDiv.style.display = "initial";
+                } else {
+                    resultDiv.classList.add("fas", "fa-times");
+                    loadingDiv.style.display = "none";
+                    resultDiv.style.display = "initial";
+                }
+            })
+            .catch(error => {
+                resultDiv.classList.add("fas", "fa-times");
+                loadingDiv.style.display = "none";
+                resultDiv.style.display = "initial";
+            });
+        setTimeout(() => {
+            testConnection(ip, port);
+        }, 60000);
+    }
+
+    async function fetchData(address, d = []) {
+        try {
+            let response = await fetch(address);
+            let data = await response.json();
+            return data.success;
+        }
+        catch (error) {
+            return d;
+        }
+    }
+
+    function create_info(data, pk) {
+        const tbody = document.createElement("tbody");
+
+        if(Object.keys(data).length == 0) {
+            return tbody;
+        }
+
+
+        tbody.innerHTML = `
+            <tbody>
+                <tr>
+                    <td class="p-2"><img src="{% url 'manga_cover' %}?pk=${pk}&internalId=${data.manga.internalId}" style="width: 10em; max-height: 15em;"></img></td>
+                    <td class="h-100 w-100 p-2" style="height: 100%;">
+                        <table class="h-100 w-100">
+                            <tbody>
+                                <tr>
+                                    <td class="w-75" colspan="4">${data.manga.sortName}</td>
+                                    <td class="w-25">(${data.manga.status})</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3">
+                                        <b>Description: </b></br>
+                                        ${data.manga.description.substring(0, 512) + (data.manga.description.length > 512 ? "..." : "")}
+                                    </td>
+                                    <td colspan="2"></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4"><b>Tags: </b>${Object.keys(data.manga.tags).slice(0, 32).map((key) => data.manga.tags[key]).join(", ")}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4"></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td><a href="${data.manga.websiteUrl}">${data.mangaConnector.name}</a></td>
+                                    <td colspan="2"></td>
+                                    <td colspan="2">${Object.keys(data.manga.authors).slice(0, 32).map((key) => data.manga.authors[key]).join(", ")}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+            </tbody>
+            `;
+        tbody.classList.add("tg", "w-100", "h-100", "m-2", "p-2");
+
+        return tbody;
+    }
+
+    function volume_separator(current, last) {
+        if(current == last || current == null) return null;
+
+        let separator = document.createElement("tr");
+        separator.innerHTML = "<td colspan='6'></td>";
+        separator.classList.add("my-1", "bg-dark")
+        return separator;
+    }
+
+    function create_chapters(data, pk) {
+        const tbody = document.createElement("tbody");
+
+        let volume = null;
+        for(let item of data.sort((a, b) => {if (a.volumeNumber !== b.volumeNumber) return a.volumeNumber - b.volumeNumber; return a.chapterNumber - b.chapterNumber;})) {
+            let tr = document.createElement("tr");
+
+            let separator = volume_separator(volume, item.volumeNumber);
+            if(separator != null) {
+                tbody.appendChild(separator);
+            }
+
+            tr.innerHTML = `
+                <tr>
+                    <td class="text-center">${item.volumeNumber}</td>
+                    <td class="text-center">${item.chapterNumber}</td>
+                    <td>${item.name == null ? "" : item.name}</td>
+                    <td>${item.fileName}</td>
+                    <td>${item.id}</td>
+                    <td>${item.url}</td>
+                </tr>
+            `;
+            volume = item.volumeNumber;
+
+            tbody.appendChild(tr);
+        }
+
+        return tbody;
+    }
+
+    function getManga(data=[], internalId) {
+        for(let key in Object.keys(data)) {
+            let item = data[key];
+            if(((item["manga"] ?? {})["internalId"] ?? -1) == internalId) {
+                return item;
+            }
+        }
+
+        return {}
+    }
+
+    async function get_info(url, pk, internalId) {
+        let dataTable = document.getElementById(`info_table`);
+
+
+        let data = await fetchData(url, []);
+
+        dataTable.replaceChildren(create_info(getManga(data, internalId), pk));
+        
+        setTimeout(() => {
+            get_info(url, pk, internalId);
+        }, 600000);
+    }
+    
+
+    async function get_chapters(url, pk, internalId) {
+        let chaptersTable = document.getElementById(`chapters_table`);
+
+
+        let data = await fetchData(url, []);
+
+
+        chaptersTable.innerHTML = create_chapters(data, pk).innerHTML;
+        
+        setTimeout(() => {
+            get_chapters(url, pk, internalId);
+        }, 600000);
+    }
+
+    get_info("{% url 'jobs_monitor' api.pk %}", "{{ api.pk }}", "{{ manga.internalId }}")
+    get_chapters("{% url 'manga_chapters' api.pk %}?internalId={{ manga.internalId }}&connector={{ connector }}", "{{ api.pk }}", "{{ manga.internalId }}&language={{ manga.translatedLanguage }}")
+    testConnection("{{ api.ip }}", "{{ api.port }}");
+</script>
+{% endblock %}

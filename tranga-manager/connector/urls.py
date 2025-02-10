@@ -12,4 +12,8 @@ urlpatterns = [
     path("manga/search", views.manga_search, name="manga_search"),
     path("manga/monitor", views.manga_monitor, name="manga_monitor"),
     path("connectors/<int:pk>", views.connectors, name="connectors"),
+    path("api/<int:pk>/manga/start", views.start_manga, name="manga_start"),
+    path("api/<int:pk>/manga/cancel", views.cancel_manga, name="manga_cancel"),
+    path("api/<int:pk>/manga/delete", views.delete_manga, name="manga_delete"),
+    path("api/<int:pk>/manga/chapters", views.chapters, name="manga_chapters"),
 ]

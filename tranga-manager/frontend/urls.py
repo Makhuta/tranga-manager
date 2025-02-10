@@ -11,5 +11,5 @@ urlpatterns = [
     path("api/<int:pk>/delete/", views.delete_api, name="api_delete"),
     path("api/<int:pk>/monitor/", views.monitor_api, name="api_monitor"),
     path("api/<int:pk>/", views.view_api, name="api"),
-    path("api/<int:pk>/manga", views.view_api, name="manga"),
+    path("api/<int:pk>/manga", views.view_manga, name="manga"),
 ]

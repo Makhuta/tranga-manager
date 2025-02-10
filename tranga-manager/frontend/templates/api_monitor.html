@@ -8,7 +8,7 @@
         <div class="collapse navbar-collapse" id="navbarNavDropdown">
             <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
                 <li class="nav-item dropdown my-auto">
-                    <b>{{ api }}</b>
+                    <a href="{% url 'api' api.pk %}" style="text-decoration: inherit;"><b>{{ api }}</b></a>
                 </li>
                 <li class="nav-item dropdown pl-2 my-auto">
                     <div class="loader" style="--loader-size: 24px; --loader-color: #3498db; --loader-bg: #f3f3f3;" id="loader_icon"></div>

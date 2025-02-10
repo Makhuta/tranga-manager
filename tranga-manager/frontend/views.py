@@ -1,29 +1,13 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
-from datetime import date
 
 from database.models import API
-from connector.views import req_connection
+from connector.views import get_connection
 from .forms import APIForm
+from .functions import custom_render, get_apis
 
 # Create your views here.
-
-def get_apis():
-    apis = API.objects.all()
-    if len(apis) == 0:
-        return []
-    return apis
-
-def custom_render(request, template_name, context={}):
-    default_context = {
-        'year': date.today().strftime("%Y"),
-        'base_url': f'{request.scheme}://{request.get_host()}',
-        'apis': get_apis(),
-    }
-
-    context.update(default_context)
-    return render(request, template_name, context)
 
 @login_required
 def index(request):
@@ -40,7 +24,23 @@ def view_api(request, pk):
     if not api.exists():
         return redirect('index')
     
-    return custom_render(request, "api.html", {'api': api.first()})
+    return custom_render(request, "api.html", {'api': api.first(), 'connectors': get_connection(api.first().ip, api.first().port, api.first().timeout, f'Connectors', ["NONE FOUND"])})
+
+@login_required
+def view_manga(request, pk):
+    api = API.objects.filter(pk=pk)
+    if not api.exists():
+        return redirect('index')
+    internalId = request.GET.get("internalId")
+    connector = request.GET.get("connector")
+    if not internalId or not connector:
+        return redirect('api', pk)
+    
+    manga_data = get_connection(api.first().ip, api.first().port, path=f'Manga/Chapters?connector={connector}&internalId={internalId}', default=[])
+    if len(manga_data) == 0:
+        return redirect('api', pk)
+    
+    return custom_render(request, "manga.html", {'api': api.first(), 'manga': manga_data[0].get("parentManga", {'sortName': "UNKNOWN"}), 'connector': connector})
 
 @login_required
 def delete_api(request, pk):
@@ -59,9 +59,8 @@ def monitor_api(request, pk):
     if not api.exists():
         return redirect('index')
     if request.method == 'POST':
-        #api.delete()
         return redirect('api', pk)
-    return custom_render(request, "api_monitor.html", {'api': api.first(), 'connectors': req_connection(api.first().ip, api.first().port, api.first().timeout, f'Connectors', ["NONE FOUND"])})
+    return custom_render(request, "api_monitor.html", {'api': api.first(), 'connectors': get_connection(api.first().ip, api.first().port, api.first().timeout, f'Connectors', ["NONE FOUND"])})
 
 @login_required
 def add_api(request):

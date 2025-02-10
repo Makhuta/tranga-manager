@@ -1,8 +1,12 @@
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
+from urllib.parse import urlencode
 
 from database.models import API
+from frontend.functions import custom_render
+
 
 import requests
 
@@ -14,13 +18,18 @@ def test_connection(ip, port, timeout=10):
     except:
         return False
     
-def req_connection(ip, port, timeout=None, path="Ping", default={}):
+def req_connection(url, timeout=None, method="GET"):
+    if timeout is not None:
+        return requests.request(method=method, url=url, timeout=timeout)
+    return requests.request(method=method, url=url)
+    
+def get_connection(ip, port, timeout=None, path="Ping", default={}):
     url = f'http://{ip}:{port}/{path}'
     try:
         if timeout is not None:
-            resp = requests.get(url, timeout=timeout)
+            resp = req_connection(url, timeout=timeout)
         else:
-            resp = requests.get(url)
+            resp = req_connection(url)
         return resp.json() if resp.ok else default
     except:
         return default
@@ -29,10 +38,20 @@ def post_connection(ip, port, timeout=None, path=""):
     url = f'http://{ip}:{port}/{path}'
     try:
         if timeout is not None:
-            return requests.post(url, timeout=timeout).ok
-        return requests.post(url).ok
+            return req_connection(url=url, method="POST", timeout=timeout).ok
+        return req_connection(url=url, method="POST").ok
     except:
         return False
+    
+def delete_connection(ip, port, timeout=None, path=""):
+    url = f'http://{ip}:{port}/{path}'
+    try:
+        if timeout is not None:
+            return req_connection(url=url, method="DELETE", timeout=timeout).ok
+        return req_connection(url=url, method="DELETE").ok
+    except:
+        return False
+
     
 def req_image(ip, port, timeout=10, path=""):
     url = f'http://{ip}:{port}/{path}'
@@ -65,21 +84,21 @@ def jobs_monitor(request, pk):
     api = API.objects.filter(pk=pk)
     if not api.exists():
         return JsonResponse(data={'success': []})
-    return JsonResponse(data={'success': req_connection(api.first().ip, api.first().port, api.first().timeout, "Jobs/MonitorJobs", []) })
+    return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, "Jobs/MonitorJobs", []) })
 
 @login_required
 def jobs_waiting(request, pk):
     api = API.objects.filter(pk=pk)
     if not api.exists():
         return JsonResponse(data={'success': []})
-    return JsonResponse(data={'success': req_connection(api.first().ip, api.first().port, api.first().timeout, "Jobs/Waiting", []) })
+    return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, "Jobs/Waiting", []) })
 
 @login_required
 def jobs_running(request, pk):
     api = API.objects.filter(pk=pk)
     if not api.exists():
         return JsonResponse(data={'success': []})
-    return JsonResponse(data={'success': req_connection(api.first().ip, api.first().port, api.first().timeout, "Jobs/Running", []) })
+    return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, "Jobs/Running", []) })
 
 
 @login_required
@@ -110,7 +129,7 @@ def manga_search(request):
     api = API.objects.filter(pk=pk)
     if not api.exists():
         return JsonResponse(data={'success': []})
-    return JsonResponse(data={'success': req_connection(api.first().ip, api.first().port, path=f'/Manga/FromConnector?connector={connector}&title={title}', default=[]) })
+    return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, path=f'/Manga/FromConnector?connector={connector}&title={title}', default=[]) })
 
 @login_required
 def manga_monitor(request):
@@ -131,8 +150,91 @@ def manga_monitor(request):
 
 
 @login_required
+def start_manga(request, pk):
+    api = API.objects.filter(pk=pk)
+    if not api.exists():
+        return redirect('index')
+    connector = request.POST.get("connector")
+    internalId = request.POST.get("internalId")
+    source_url = request.POST.get("source_url")
+    if not connector or not internalId or not source_url:
+        return redirect('api', pk)
+    
+    post_connection(api.first().ip, api.first().port, api.first().timeout, f'Jobs/StartNow?jobId=Tranga.Jobs.DownloadNewChapters-{internalId}')
+    params = {
+        'internalId': internalId,
+        'connector': connector
+    }
+    return redirect(f'{request.build_absolute_uri(source_url)}?{urlencode(params)}')
+
+
+@login_required
+def cancel_manga(request, pk):
+    api = API.objects.filter(pk=pk)
+    if not api.exists():
+        return redirect('index')
+    connector = request.POST.get("connector")
+    internalId = request.POST.get("internalId")
+    source_url = request.POST.get("source_url")
+    if not connector or not internalId or not source_url:
+        return redirect('api', pk)
+    
+    post_connection(api.first().ip, api.first().port, api.first().timeout, f'Jobs/Cancel?jobId=Tranga.Jobs.DownloadNewChapters-{internalId}')
+    params = {
+        'internalId': internalId,
+        'connector': connector
+    }
+    return redirect(f'{request.build_absolute_uri(source_url)}?{urlencode(params)}')
+
+
+@login_required
+def delete_manga(request, pk):
+    api = API.objects.filter(pk=pk)
+    if not api.exists():
+        return redirect('index')
+    connector = request.POST.get("connector")
+    internalId = request.POST.get("internalId")
+    source_url = request.POST.get("source_url")
+    if not connector or not internalId or not source_url:
+        return redirect('api', pk)
+    
+    url = f'http://{api.first().ip}:{api.first().port}/Jobs?jobId=Tranga.Jobs.DownloadNewChapters-{internalId}'
+    if not req_connection(method='OPTIONS', url=url).ok:
+        params = {
+            'internalId': internalId,
+            'connector': connector
+        }
+        return redirect(f'{request.build_absolute_uri(source_url)}?{urlencode(params)}')
+    
+    delete_connection( api.first().ip, api.first().port, path=f'Jobs?jobId=Tranga.Jobs.DownloadNewChapters-{internalId}')
+    return redirect('api', pk)
+
+
+@login_required
 def connectors(request, pk):
     api = API.objects.filter(pk=pk)
     if not api.exists():
         return JsonResponse(data={'success': []})
-    return JsonResponse(data={'success': req_connection(api.first().ip, api.first().port, api.first().timeout, f'Connectors', []) })
+    return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, f'Connectors', []) })
+
+
+@login_required
+def chapters(request, pk):
+    api = API.objects.filter(pk=pk)
+    if not api.exists():
+        return JsonResponse(data={'success': []})
+    connector = request.GET.get("connector")
+    internalId = request.GET.get("internalId")
+    if not connector or not internalId:
+        print("here")
+        return JsonResponse(data={'success': []})
+    resp = get_connection(api.first().ip, api.first().port, path=f'Manga/Chapters?internalId={internalId}&connector={connector}', default=[])
+    items = []
+    ret = []
+    for item in resp:
+        key = ( item.get("volumeNumber", 0), item.get("chapterNumber", 0) )
+        if key in items:
+            continue
+        items.append(key)
+        ret.append(item)
+    return JsonResponse(data={'success': ret })

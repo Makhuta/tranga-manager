@@ -16,19 +16,62 @@
                 </li>
                 <li class="nav-item dropdown pl-5">
                     <a href="{% url 'api_monitor' api.pk%}">
-                        <button class="btn btn-outline-warning my-2 my-sm-0" type="submit">Monitor <i class="fa fa-eye"></i></button>
+                        <button class="btn btn-outline-warning my-2 my-sm-0 py-2" type="submit">Monitor <i class="fa fa-eye"></i></button>
                     </a>
+                </li>
+                <li class="nav-item dropdown pl-5">
+                    <input type="text" id="tableFilter" class="form-control py-2" style="min-width: 25vw;" placeholder="Search...">
+                </li>
+                <li class="nav-item dropdown pl-2">
+                    <button class="btn btn-outline-secondary py-2" id="clean_filter">
+                        <i class="fa fa-broom"></i>
+                    </button>
+                </li>
+                <li class="nav-item dropdown pl-2">
+                    <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
+                        <li class="nav-item dropdown">
+                            <button class="btn btn-outline-secondary m-0 p-0" data-toggle="dropdown" aria-expanded="false">
+                                <a class="nav-link dropdown-toggle text-secondary my-2 my-sm-0" href="#" id="connectorDropdown">
+                                    Connector <i class="fa fa-plug"></i>
+                                </a>
+                            </button>
+                            <div class="dropdown-menu" aria-labelledby="connectorDropdownButton" id="connectorDropdown">
+                                {% for connector in connectors %}
+                                <div class="dropdown-item selectable" data-type="connector" data-value="{{ connector }}">{{ connector }}</div>
+                                {% endfor %}
+                            </div>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown pl-2">
+                    <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
+                        <li class="nav-item dropdown">
+                            <button class="btn btn-outline-secondary m-0 p-0" data-toggle="dropdown" aria-expanded="false">
+                                <a class="nav-link dropdown-toggle text-secondary my-2 my-sm-0" href="#" id="statusDropdown">
+                                    Status <i class="far fa-calendar"></i>
+                                </a>
+                            </button>
+                            <div class="dropdown-menu p-2" aria-labelledby="statusDropdownButton" id="statusDropdown">
+                                <div class="dropdown-item selectable" data-type="status" data-value="Ongoing">Ongoing</div>
+                                <div class="dropdown-item selectable" data-type="status" data-value="Completed">Completed</div>
+                                <div class="dropdown-item selectable" data-type="status" data-value="OnHiatus">On Hiatus</div>
+                                <div class="dropdown-item selectable" data-type="status" data-value="Cancelled">Cancelled</div>
+                                <div class="dropdown-item selectable" data-type="status" data-value="Continuing">Continuing</div>
+                                <div class="dropdown-item selectable" data-type="status" data-value="Status Unavailable">Status Unavailable</div>
+                            </div>
+                        </li>
+                    </ul>
                 </li>
             </ul>
             <form class="form-inline my-2 my-lg-0" id="delete-form" method="post" action="{% url 'api_delete' api.pk%}">
                 {% csrf_token %}
-                <button class="btn btn-outline-danger my-2 my-sm-0" type="submit">Delete <i class="fa fa-trash"></i></button>
+                <button class="btn btn-outline-danger my-2 my-sm-0 py-2" type="submit">Delete <i class="fa fa-trash"></i></button>
             </form>
         </div>
     </nav>
 </header>
 <main class="p-4">
-    <table class="w-100">
+    <table class="w-100" id="dynamicTable">
         <tbody id="jobs_table">
         </tbody>
     </table>
@@ -98,7 +141,7 @@
         a.style.textDecoration = "inherit";
         a.style.color = "inherit";
         a.style.cursor = "auto";
-        a.href = `${url}?internalId=${item.manga.internalId}`;
+        a.href = `${url}?internalId=${item.manga.internalId}&connector=${item.mangaConnector.name}`;
         tr.appendChild(a);
 
         const tableRow = document.createElement("table");
@@ -112,26 +155,53 @@
                     <table class="h-100 w-100">
                         <tbody>
                             <tr>
-                                <td class="w-75" colspan="4" style="cursor: pointer;">${item.manga.sortName}</td>
-                                <td class="w-25">(${item.manga.status})</td>
+                                <td colspan="4" style="cursor: pointer;" data-id="manga_name" data-value="${item.manga.sortName}"><h4 style="max-width:95%; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${item.manga.sortName}</h4></td>
+                                <td class="w-25" data-id="manga_status" data-value="${item.manga.status}">(${item.manga.status})</td>
                             </tr>
                             <tr>
-                                <td colspan="3">
+                                <td colspan="4">
                                     <b>Description: </b></br>
                                     ${item.manga.description.substring(0, 512) + (item.manga.description.length > 512 ? "..." : "")}
                                 </td>
-                                <td colspan="2"></td>
+                                <td>
+                                    <form class="form-inline mt-auto mb-2 my-lg-0 h-100" id="start-form" method="post"
+                                        action="{% url 'manga_start' api.pk %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="connector" value="${ item.mangaConnector.name }">
+                                        <input type="hidden" name="internalId" value="${ item.manga.internalId }">
+                                        <input type="hidden" name="source_url" value="{% url 'api' api.pk %}">
+                                        <button class="btn btn-outline-primary mt-auto" style="min-width:10em;" type="submit">Start Job <i class="fa fa-play"></i></button>
+                                    </form>    
+                                </td>
                             </tr>
                             <tr>
                                 <td colspan="4"><b>Tags: </b>${Object.keys(item.manga.tags).slice(0, 32).map((key) => item.manga.tags[key]).join(", ")}</td>
-                                <td></td>
+                                <td>
+                                    <form class="form-inline my-2 my-lg-0" id="cancel-form" method="post"
+                                        action="{% url 'manga_cancel' api.pk %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="connector" value="${ item.mangaConnector.name }">
+                                        <input type="hidden" name="internalId" value="${ item.manga.internalId }">
+                                        <input type="hidden" name="source_url" value="{% url 'api' api.pk %}">
+                                        <button class="btn btn-outline-secondary my-2 my-sm-0" style="min-width:10em;" type="submit">Cancel Job <i class="fas fa-times"></i></button>
+                                    </form>    
+                                </td>
                             </tr>
                             <tr>
                                 <td colspan="4"></td>
-                                <td></td>
+                                <td>
+                                    <form class="form-inline my-2 my-lg-0" id="delete-form" method="post"
+                                        action="{% url 'manga_delete' api.pk %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="connector" value="${ item.mangaConnector.name }">
+                                        <input type="hidden" name="internalId" value="${ item.manga.internalId }">
+                                        <input type="hidden" name="source_url" value="{% url 'api' api.pk %}">
+                                        <button class="btn btn-outline-danger my-2 my-sm-0" style="min-width:10em;" type="submit">Delete Job <i class="fa fa-trash"></i></button>
+                                    </form>
+                                </td>
                             </tr>
                             <tr>
-                                <td><a href="${item.manga.websiteUrl}">${item.mangaConnector.name}</a></td>
+                                <td><a href="${item.manga.websiteUrl}" data-id="manga_connector" data-value="${ item.mangaConnector.name }">${item.mangaConnector.name}</a></td>
                                 <td colspan="2"></td>
                                 <td colspan="2">${Object.keys(item.manga.authors).slice(0, 32).map((key) => item.manga.authors[key]).join(", ")}</td>
                             </tr>
@@ -141,6 +211,7 @@
             </tr>
         </tbody>
         `;
+
         a.appendChild(tableRow);
 
         return tr;
@@ -159,7 +230,7 @@
 
         jobs_div.replaceChildren(...newChildren);
 
-
+        update_filter();
         setTimeout(() => {
             getMonitors(url, url_api, pk);
         }, 60000);
@@ -167,5 +238,60 @@
 
     testConnection("{{ api.ip }}","{{ api.port }}");
     getMonitors("{% url 'jobs_monitor' api.pk %}", "{% url 'manga' api.pk %}", "{{ api.pk }}");
+
+    let filterInput = undefined;
+
+    function update_filter() {
+        let filter = filterInput == undefined ? "" : filterInput.value.toLowerCase();
+        let rows = document.querySelectorAll("#dynamicTable > tbody > tr");
+        let connectorItems = [...document.querySelectorAll(".selectable[data-type='connector']")];
+        connectorItems = connectorItems.filter((item) => item.classList.contains("active")).map(e => e.getAttribute("data-value"));
+        let statusItems = [...document.querySelectorAll(".selectable[data-type='status']")];
+        statusItems = statusItems.filter((item) => item.classList.contains("active")).map(e => e.getAttribute("data-value"));
+        
+        console.info(statusItems.includes(statusItems[0]))
+
+        rows.forEach(row => {
+            let titleElement = row.querySelector("[data-id='manga_name']");
+            let titleText = titleElement ? titleElement.getAttribute("data-value").toLowerCase() : "";
+            let connectorElement = row.querySelector("[data-id='manga_connector']");
+            let connectorText = connectorElement ? connectorElement.getAttribute("data-value") : "";
+            let statusElement = row.querySelector("[data-id='manga_status']");
+            let statusText = statusElement ? statusElement.getAttribute("data-value") : "";
+
+            row.style.display = (titleText.includes(filter) && (connectorItems.includes(connectorText) || connectorItems.length == 0) && (statusItems.includes(statusText) || statusItems.length == 0)) ? "" : "none";
+        });
+    }
+
+    document.getElementById("tableFilter").addEventListener("keyup", function () {
+        if(filterInput == undefined) {
+            filterInput = this;
+        }
+        update_filter();
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const cleanFilter = document.querySelector("#clean_filter");
+        const dropdownItems = document.querySelectorAll(".selectable");
+        const statusDropdownButton = document.getElementById("statusDropdownButton");
+
+        dropdownItems.forEach(item => {
+            item.addEventListener("click", function (event) {
+                event.stopPropagation();
+                this.classList.toggle("active");
+                update_filter();
+            });
+        });
+
+        cleanFilter.addEventListener("click", function(event) {
+            dropdownItems.forEach(item => {
+                item.classList.remove("active");
+            })
+            if(filterInput != undefined) {
+                filterInput.value = "";
+            }
+            update_filter();
+        })
+    });
 </script>
 {% endblock %}
