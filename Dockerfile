@@ -35,7 +35,7 @@ ENV DJANGO_EMAIL=default@email.com
 # Entry point to run migrations and start Django server with custom configurations
 CMD sh -c " \
     # Make database migrations \
-    python manage.py makemigrations && \
+    python manage.py makemigrations connector database frontend && \
     # Run database migrations \
     python manage.py migrate && \
     # Create superuser if username and password are passed as environment variables \
