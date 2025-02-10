@@ -14,18 +14,23 @@ def test_connection(ip, port, timeout=10):
     except:
         return False
     
-def req_connection(ip, port, timeout=10, path="Ping", default={}):
+def req_connection(ip, port, timeout=None, path="Ping", default={}):
     url = f'http://{ip}:{port}/{path}'
     try:
-        resp = requests.get(url, timeout=timeout)
+        if timeout is not None:
+            resp = requests.get(url, timeout=timeout)
+        else:
+            resp = requests.get(url)
         return resp.json() if resp.ok else default
     except:
         return default
     
-def post_connection(ip, port, timeout=10, path=""):
+def post_connection(ip, port, timeout=None, path=""):
     url = f'http://{ip}:{port}/{path}'
     try:
-        return requests.post(url, timeout=timeout).ok
+        if timeout is not None:
+            return requests.post(url, timeout=timeout).ok
+        return requests.post(url).ok
     except:
         return False
     
@@ -105,7 +110,7 @@ def manga_search(request):
     api = API.objects.filter(pk=pk)
     if not api.exists():
         return JsonResponse(data={'success': []})
-    return JsonResponse(data={'success': req_connection(api.first().ip, api.first().port, api.first().timeout, f'/Manga/FromConnector?connector={connector}&title={title}', []) })
+    return JsonResponse(data={'success': req_connection(api.first().ip, api.first().port, path=f'/Manga/FromConnector?connector={connector}&title={title}', default=[]) })
 
 @login_required
 def manga_monitor(request):
