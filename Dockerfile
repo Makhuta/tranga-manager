@@ -31,9 +31,12 @@ ENV DEBUG=False
 ENV SECRET_KEY=django-insecure-@lg7fq*-bvgjoq4!voi72uu^d^ki0(o0*lx5fa3fc!fe&2f5xt
 ENV ALLOWED_HOSTS=*
 ENV DJANGO_EMAIL=default@email.com
+ENV DATABASE_DIR=/app
 
 # Entry point to run migrations and start Django server with custom configurations
 CMD sh -c " \
+    # Ensure DATABASE_DIR exists \
+    mkdir -p \"$DATABASE_DIR\" && \
     # Make database migrations \
     python manage.py makemigrations connector database frontend && \
     # Run database migrations \
