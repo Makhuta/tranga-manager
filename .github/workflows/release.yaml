@@ -51,7 +51,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ steps.string.outputs.lowercase }}/${{ env.IMAGE_NAME }}:${{ env.tag_name }}
+            ghcr.io/${{ steps.string.outputs.lowercase }}/${{ env.IMAGE_NAME }}:${{ env.tag_name }}-test
             ghcr.io/${{ steps.string.outputs.lowercase }}/${{ env.IMAGE_NAME }}:${{ env.tag }}
           provenance: false
           build-args: |
