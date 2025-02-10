@@ -2,7 +2,7 @@
 FROM python:3.9-slim
 
 # Set environment variables for Django settings
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONUNBUFFERED=1
 
 # Set working directory
 WORKDIR /app
@@ -34,6 +34,8 @@ ENV DJANGO_EMAIL=default@email.com
 
 # Entry point to run migrations and start Django server with custom configurations
 CMD sh -c " \
+    # Make database migrations \
+    python manage.py makemigrations && \
     # Run database migrations \
     python manage.py migrate && \
     # Create superuser if username and password are passed as environment variables \
