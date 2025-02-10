@@ -54,8 +54,8 @@ jobs:
             ghcr.io/username/app
           # generate Docker tags based on the following events/attributes
           tags: |
-            type=raw,pattern=${{ env.tag_name }}
-            type=raw,pattern=${{ env.tag }}
+            type=raw,value=${{ env.tag_name }}
+            type=raw,value=${{ env.tag }}
 
       - name: Build and push
         uses: docker/build-push-action@v5
