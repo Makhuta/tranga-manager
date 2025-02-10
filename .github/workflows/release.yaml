@@ -55,5 +55,6 @@ jobs:
             ghcr.io/${{ steps.string.outputs.lowercase }}/${{ env.IMAGE_NAME }}:${{ env.tag_name }}
           cache-from: type=registry,ref=ghcr.io/${{ steps.string.outputs.lowercase }}/${{ env.IMAGE_NAME }}:${{ env.tag_name }}
           cache-to: type=registry,ref=ghcr.io/${{ steps.string.outputs.lowercase }}/${{ env.IMAGE_NAME }}:${{ env.tag_name }},mode=max
+          provenance: false
           build-args: |
             IMAGE_NAME=${{ env.IMAGE_NAME }}
