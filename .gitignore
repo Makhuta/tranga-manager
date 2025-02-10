@@ -1,5 +1,6 @@
 # Generated
 *__pycache__
 *db.sqlite3
+*migrations/
 tranga-manager/static/*
 venv/*

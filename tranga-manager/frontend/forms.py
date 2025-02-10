@@ -1,8 +1,5 @@
 from django import forms
 
-from database.models import API
-
-
 class APIForm(forms.Form):
     name = forms.CharField(
         label="Name",
@@ -10,8 +7,9 @@ class APIForm(forms.Form):
         widget=forms.TextInput(attrs={"class": "form-control"}),
         required=False
     )
-    ip = forms.GenericIPAddressField(
+    ip = forms.CharField(
         label="IP Address",
+        max_length=255,
         widget=forms.TextInput(attrs={"class": "form-control"}),
         error_messages={"invalid": "Enter a valid IP address."},
         initial='127.0.0.1'

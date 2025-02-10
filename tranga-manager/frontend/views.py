@@ -70,7 +70,7 @@ def add_api(request):
         form = APIForm(request.POST)
         if form.is_valid():
             data = form.cleaned_data
-            api = API(name=data.get('name', ''), ip=data.get('ip'), port=data.get('port'), timeout=data.get('timeout', 1))
+            api = API(name=data.get('name', ''), ip_or_hostname=data.get('ip'), port=data.get('port'), timeout=data.get('timeout', 1))
             if api.try_save():
                 return redirect('index')
             else:
