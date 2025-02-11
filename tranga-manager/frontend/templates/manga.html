@@ -174,12 +174,16 @@
         return tbody;
     }
 
-    function volume_separator(current, last) {
+    function volume_separator(current, last, m=true) {
         if(current == last || current == null) return null;
 
         let separator = document.createElement("tr");
         separator.innerHTML = "<td colspan='6'></td>";
-        separator.classList.add("my-1", "bg-dark")
+        if(m) {
+            separator.classList.add("my-1", "bg-dark");
+        } else {
+            separator.style.display = "none";
+        }
         return separator;
     }
 
@@ -193,6 +197,7 @@
             let separator = volume_separator(volume, item.volumeNumber);
             if(separator != null) {
                 tbody.appendChild(separator);
+                tbody.appendChild(volume_separator(volume, item.volumeNumber, false));
             }
 
             tr.innerHTML = `
@@ -205,6 +210,7 @@
                     <td>${item.url}</td>
                 </tr>
             `;
+            tr.classList.add("altering")
             volume = item.volumeNumber;
 
             tbody.appendChild(tr);
