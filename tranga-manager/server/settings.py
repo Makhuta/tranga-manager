@@ -22,7 +22,7 @@ LOGIN_URL = "/accounts/login/"
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-@lg7fq*-bvgjoq4!voi72uu^d^ki0(o0*lx5fa3fc!fe&2f5xt')
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'

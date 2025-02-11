@@ -18,20 +18,25 @@ RUN pip install --upgrade pip
 
 # Copy the requirements file to the container and install Python dependencies
 COPY requirements.txt /app/
+COPY entrypoint.sh /usr/bin/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the Django project into the container
 COPY ./tranga-manager /app/
 
 # Expose the port the app will run on
-EXPOSE 8000
+EXPOSE 80
 
 # Set environment variables for the app (can be overridden when running the container)
 ENV DEBUG=False
-ENV SECRET_KEY=django-insecure-@lg7fq*-bvgjoq4!voi72uu^d^ki0(o0*lx5fa3fc!fe&2f5xt
 ENV ALLOWED_HOSTS=*
+ENV DJANGO_USERNAME=Admin
+ENV DJANGO_PASSWORD=tranga-admin
 ENV DJANGO_EMAIL=default@email.com
 ENV DATABASE_DIR=/app
+
+RUN chmod +x /usr/bin/entrypoint.sh
+ENTRYPOINT ["entrypoint.sh"]
 
 # Entry point to run migrations and start Django server with custom configurations
 CMD sh -c " \
@@ -47,5 +52,5 @@ CMD sh -c " \
     fi && \
     # Start Django development server with custom port and settings \
     python manage.py collectstatic --noinput && \
-    python manage.py runserver 0.0.0.0:8000"
+    python manage.py runserver 0.0.0.0:80"
 

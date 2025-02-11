@@ -1,0 +1,35 @@
+services:
+  tranga-api:
+    image: glax/tranga-api
+    container_name: tranga-api
+    volumes:
+      - /path/to/your/Manga:/Manga
+      - /path/to/your/settings:/usr/share/tranga-api
+    ports:
+      - "6531:6531"
+    networks:
+      - tranga_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: unless-stopped
+  tranga-manager:
+    image: ghcr.io/makhuta/tranga-manager
+    container_name: tranga-manager
+    ports:
+      - "80:80"
+    volumes:
+      - /path/to/your/database:${DATABASE_DIR}
+    environment:
+      - DJANGO_USERNAME=${DJANGO_USERNAME}
+      - DJANGO_PASSWORD=${DJANGO_PASSWORD}
+      - DATABASE_DIR=${DATABASE_DIR}
+      - SECRET_KEY=${SECRET_KEY}
+    networks:
+      - tranga_network
+    depends_on: 
+      - tranga-api
+    restart: unless-stopped
+    
+networks:
+  tranga_network:
+    driver: bridge
