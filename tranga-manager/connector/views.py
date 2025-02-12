@@ -8,6 +8,7 @@ from database.models import API
 from frontend.functions import custom_render
 
 
+from langcodes import *
 import requests
 
 def test_connection(ip, port, timeout=10):
@@ -216,6 +217,27 @@ def connectors(request, pk):
     if not api.exists():
         return JsonResponse(data={'success': []})
     return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, f'Connectors', []) })
+
+@login_required
+def connectors_languages(request, pk):
+    api = API.objects.filter(pk=pk)
+    if not api.exists():
+        return JsonResponse(data={'success': {}})
+    connector = request.GET.get("connector")
+    if not connector:
+        return JsonResponse(data={'success': {}})
+
+    return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, f'Languages?connector={connector}', {"name": connector, "SupportedLanguages": ['en', 'it', 'de']}) })
+
+
+@login_required
+def language_name(request):
+    language = request.GET.get("language")
+    if not language:
+        return JsonResponse(data={'success': "unknown"})
+
+    lang = Language.get(language)
+    return JsonResponse(data={'success': lang.display_name() })
 
 
 @login_required

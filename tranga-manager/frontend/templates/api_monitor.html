@@ -38,9 +38,7 @@
                         <!-- Languages Selector -->
                         <div class="col-md-3 my-auto">
                             <select id="languageSelect" class="form-select">
-                                <option value="en">English</option>
-                                <option value="it">Italian</option>
-                                <option value="de">German</option>
+                                <option value="en">Loading</option>
                             </select>
                         </div>
                     </div>
@@ -174,6 +172,28 @@
         return tr;
     }
 
+    async function load_languages() {
+        const connector = document.getElementById("connectorSelect").value;
+        const languageList = document.getElementById("languageSelect");
+
+        let data = await fetchData(`{% url 'connectors_languages' api.pk %}?connector=${connector}`, []);
+
+        var languages = [];
+        for(var lang of data["SupportedLanguages"]) {
+            let language = (await fetchData(`{% url 'language_name' %}?language=${lang}`, {"success": lang}));
+            var opt = document.createElement("option");
+            opt.value = lang;
+            opt.innerText = language;
+            languages.push(opt)
+        };
+
+        if(connector == document.getElementById("connectorSelect").value) {
+            languageList.replaceChildren(...languages);
+        }
+    }
+
+    document.getElementById("connectorSelect").addEventListener("change", load_languages);
+
     async function searchManga() {
         const connector = document.getElementById("connectorSelect").value;
         const language = document.getElementById("languageSelect").value;
@@ -221,7 +241,7 @@
     }
 
     testConnection("{{ api.ip }}","{{ api.port }}");
-
+    load_languages();
 
 </script>
 {% endblock %}
