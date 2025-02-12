@@ -7,6 +7,8 @@ from connector.views import get_connection
 from .forms import APIForm
 from .functions import custom_render, get_apis
 
+import json
+
 # Create your views here.
 
 @login_required
@@ -36,11 +38,11 @@ def view_manga(request, pk):
     if not internalId or not connector:
         return redirect('api', pk)
     
-    manga_data = get_connection(api.first().ip, api.first().port, path=f'Manga/Chapters?connector={connector}&internalId={internalId}', default=[])
-    if len(manga_data) == 0:
+    chapters = get_connection(api.first().ip, api.first().port, path=f'Manga/Chapters?connector={connector}&internalId={internalId}', default=[])
+    if len(chapters) == 0:
         return redirect('api', pk)
     
-    return custom_render(request, "manga.html", {'api': api.first(), 'manga': manga_data[0].get("parentManga", {'sortName': "UNKNOWN"}), 'connector': connector})
+    return custom_render(request, "manga.html", {'api': api.first(), 'manga': chapters[0].get("parentManga", {'sortName': "UNKNOWN"}), 'chapters': json.dumps(chapters), 'connector': connector})
 
 @login_required
 def delete_api(request, pk):

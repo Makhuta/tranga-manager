@@ -258,8 +258,18 @@
         }, 600000);
     }
 
+    async function get_chapters_first(url, pk, internalId, data) {
+        let chaptersTable = document.getElementById(`chapters_table`);
+
+        chaptersTable.innerHTML = create_chapters(data, pk).innerHTML;
+        
+        setTimeout(() => {
+            get_chapters(url, pk, internalId);
+        }, 600000);
+    }
+
     get_info("{% url 'jobs_monitor' api.pk %}", "{{ api.pk }}", "{{ manga.internalId }}")
-    get_chapters("{% url 'manga_chapters' api.pk %}?internalId={{ manga.internalId }}&connector={{ connector }}", "{{ api.pk }}", "{{ manga.internalId }}&language={{ manga.translatedLanguage }}")
+    get_chapters_first("{% url 'manga_chapters' api.pk %}?internalId={{ manga.internalId }}&connector={{ connector }}", "{{ api.pk }}", "{{ manga.internalId }}&language={{ manga.translatedLanguage }}", {{ chapters|safe }});
     testConnection("{{ api.ip }}", "{{ api.port }}");
 </script>
 {% endblock %}
