@@ -30,7 +30,8 @@ class API(models.Model):
                     ip_address = socket.gethostbyname(self.ip_or_hostname)
                     return ipaddress.ip_address(ip_address)
                 except socket.gaierror:
-                    raise ValueError(f"{self.ip_or_hostname} could not be resolved.")
+                    # raise ValueError(f"{self.ip_or_hostname} could not be resolved.")
+                    return None
         return None
     
     def __str__(self):

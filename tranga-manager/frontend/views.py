@@ -26,10 +26,7 @@ def view_api(request, pk):
     if not api.exists():
         return redirect('index')
     
-    try:
-        return custom_render(request, "api.html", {'api': api.first(), 'connectors': get_connection(api.first().ip, api.first().port, api.first().timeout, f'Connectors', ["NONE FOUND"])})
-    except:
-        return redirect('index')
+    return custom_render(request, "api.html", {'api': api.first(), 'connectors': get_connection(api.first().ip, api.first().port, api.first().timeout, f'Connectors', ["NONE FOUND"])})
 
 @login_required
 def view_manga(request, pk):
@@ -41,10 +38,7 @@ def view_manga(request, pk):
     if not internalId or not connector:
         return redirect('api', pk)
     
-    try:
-        chapters = get_connection(api.first().ip, api.first().port, path=f'Manga/Chapters?connector={connector}&internalId={internalId}', default=[])
-    except:
-        return redirect('api', pk)
+    chapters = get_connection(api.first().ip, api.first().port, path=f'Manga/Chapters?connector={connector}&internalId={internalId}', default=[])
     if len(chapters) == 0:
         return redirect('api', pk)
     
@@ -68,11 +62,8 @@ def monitor_api(request, pk):
         return redirect('index')
     if request.method == 'POST':
         return redirect('api', pk)
-    try:
-        connectors = get_connection(api.first().ip, api.first().port, api.first().timeout, f'Connectors', ["NONE FOUND"])
-        return custom_render(request, "api_monitor.html", {'api': api.first(), 'connectors': connectors})
-    except:
-        return redirect('api', pk)
+    connectors = get_connection(api.first().ip, api.first().port, api.first().timeout, f'Connectors', ["NONE FOUND"])
+    return custom_render(request, "api_monitor.html", {'api': api.first(), 'connectors': connectors})
 
 @login_required
 def add_api(request):
