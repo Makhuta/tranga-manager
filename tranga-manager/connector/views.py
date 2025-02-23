@@ -69,7 +69,10 @@ def ping(request, pk):
     api = API.objects.filter(pk=pk)
     if not api.exists():
         return JsonResponse(data={'online': False})
-    return JsonResponse(data={'online': test_connection(api.first().ip, api.first().port, api.first().timeout) })
+    try:
+        return JsonResponse(data={'online': test_connection(api.first().ip, api.first().port, api.first().timeout) })
+    except:
+        return JsonResponse(data={'online': False})
     
 
 @login_required
@@ -85,21 +88,30 @@ def jobs_monitor(request, pk):
     api = API.objects.filter(pk=pk)
     if not api.exists():
         return JsonResponse(data={'success': []})
-    return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, "Jobs/MonitorJobs", []) })
+    try:
+        return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, "Jobs/MonitorJobs", []) })
+    except:
+        return JsonResponse(data={'success': []})
 
 @login_required
 def jobs_waiting(request, pk):
     api = API.objects.filter(pk=pk)
     if not api.exists():
         return JsonResponse(data={'success': []})
-    return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, "Jobs/Waiting", []) })
+    try:
+        return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, "Jobs/Waiting", []) })
+    except:
+        return JsonResponse(data={'success': []})
 
 @login_required
 def jobs_running(request, pk):
     api = API.objects.filter(pk=pk)
     if not api.exists():
         return JsonResponse(data={'success': []})
-    return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, "Jobs/Running", []) })
+    try:
+        return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, "Jobs/Running", []) })
+    except:
+        return JsonResponse(data={'success': []})
 
 
 @login_required
@@ -113,7 +125,10 @@ def manga_cover(request):
     if not api.exists():
         return HttpResponse("Failed to fetch image", status=500)
     
-    cover = req_image(api.first().ip, api.first().port, api.first().timeout, f'Manga/Cover?internalId={internalId}')
+    try:
+        cover = req_image(api.first().ip, api.first().port, api.first().timeout, f'Manga/Cover?internalId={internalId}')
+    except:
+        return HttpResponse("Failed to fetch image", status=500)
     if cover is None:
         return HttpResponse("Failed to fetch image", status=500)
     
@@ -130,7 +145,10 @@ def manga_search(request):
     api = API.objects.filter(pk=pk)
     if not api.exists():
         return JsonResponse(data={'success': []})
-    return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, path=f'/Manga/FromConnector?connector={connector}&title={title}', default=[]) })
+    try:
+        return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, path=f'/Manga/FromConnector?connector={connector}&title={title}', default=[]) })
+    except:
+        return JsonResponse(data={'success': []})
 
 @login_required
 def manga_monitor(request):
@@ -147,8 +165,10 @@ def manga_monitor(request):
     api = API.objects.filter(pk=pk)
     if not api.exists():
         return JsonResponse(data={'success': False})
-    return JsonResponse(data={'success': post_connection(api.first().ip, api.first().port, api.first().timeout, f'Jobs/MonitorManga?connector={connector}&internalId={internalId}&interval={interval}&translatedLanguage={translatedLanguage}')})
-
+    try:
+        return JsonResponse(data={'success': post_connection(api.first().ip, api.first().port, api.first().timeout, f'Jobs/MonitorManga?connector={connector}&internalId={internalId}&interval={interval}&translatedLanguage={translatedLanguage}')})
+    except:
+        return JsonResponse(data={'success': False})
 
 @login_required
 def start_manga(request, pk):
@@ -161,7 +181,10 @@ def start_manga(request, pk):
     if not connector or not internalId or not source_url:
         return redirect('api', pk)
     
-    post_connection(api.first().ip, api.first().port, api.first().timeout, f'Jobs/StartNow?jobId=Tranga.Jobs.DownloadNewChapters-{internalId}')
+    try:
+        post_connection(api.first().ip, api.first().port, api.first().timeout, f'Jobs/StartNow?jobId=Tranga.Jobs.DownloadNewChapters-{internalId}')
+    except:
+        return redirect('api', pk)
     params = {
         'internalId': internalId,
         'connector': connector
@@ -180,7 +203,10 @@ def cancel_manga(request, pk):
     if not connector or not internalId or not source_url:
         return redirect('api', pk)
     
-    post_connection(api.first().ip, api.first().port, api.first().timeout, f'Jobs/Cancel?jobId=Tranga.Jobs.DownloadNewChapters-{internalId}')
+    try:
+        post_connection(api.first().ip, api.first().port, api.first().timeout, f'Jobs/Cancel?jobId=Tranga.Jobs.DownloadNewChapters-{internalId}')
+    except:
+        return redirect('api', pk)
     params = {
         'internalId': internalId,
         'connector': connector
@@ -199,7 +225,10 @@ def delete_manga(request, pk):
     if not connector or not internalId or not source_url:
         return redirect('api', pk)
     
-    url = f'http://{api.first().ip}:{api.first().port}/Jobs?jobId=Tranga.Jobs.DownloadNewChapters-{internalId}'
+    try:
+        url = f'http://{api.first().ip}:{api.first().port}/Jobs?jobId=Tranga.Jobs.DownloadNewChapters-{internalId}'
+    except:
+        return redirect('api', pk)
     if not req_connection(method='OPTIONS', url=url).ok:
         params = {
             'internalId': internalId,
@@ -207,7 +236,10 @@ def delete_manga(request, pk):
         }
         return redirect(f'{request.build_absolute_uri(source_url)}?{urlencode(params)}')
     
-    delete_connection( api.first().ip, api.first().port, path=f'Jobs?jobId=Tranga.Jobs.DownloadNewChapters-{internalId}')
+    try:
+        delete_connection( api.first().ip, api.first().port, path=f'Jobs?jobId=Tranga.Jobs.DownloadNewChapters-{internalId}')
+    except:
+        redirect('api', pk)
     return redirect('api', pk)
 
 
@@ -216,7 +248,10 @@ def connectors(request, pk):
     api = API.objects.filter(pk=pk)
     if not api.exists():
         return JsonResponse(data={'success': []})
-    return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, f'Connectors', []) })
+    try:
+        return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, f'Connectors', []) })
+    except:
+        return JsonResponse(data={'success': []})
 
 @login_required
 def connectors_languages(request, pk):
@@ -227,8 +262,10 @@ def connectors_languages(request, pk):
     if not connector:
         return JsonResponse(data={'success': {}})
 
-    return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, f'Languages?connector={connector}', {"name": connector, "SupportedLanguages": ['en', 'it', 'de']}) })
-
+    try:
+        return JsonResponse(data={'success': get_connection(api.first().ip, api.first().port, api.first().timeout, f'Languages?connector={connector}', {"name": connector, "SupportedLanguages": ['en', 'it', 'de']}) })
+    except:
+        return JsonResponse(data={'success': {}})
 
 @login_required
 def language_name(request):
@@ -248,9 +285,11 @@ def chapters(request, pk):
     connector = request.GET.get("connector")
     internalId = request.GET.get("internalId")
     if not connector or not internalId:
-        print("here")
         return JsonResponse(data={'success': []})
-    resp = get_connection(api.first().ip, api.first().port, path=f'Manga/Chapters?internalId={internalId}&connector={connector}', default=[])
+    try:
+        resp = get_connection(api.first().ip, api.first().port, path=f'Manga/Chapters?internalId={internalId}&connector={connector}', default=[])
+    except:
+        return JsonResponse(data={'success': []})
     items = []
     ret = []
     for item in resp:
