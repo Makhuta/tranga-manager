@@ -29,6 +29,17 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
+origins = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+CSRF_TRUSTED_ORIGINS = [
+    f'http://{origin}' if not origin.startswith(('http://', 'https://')) else origin
+    for origin in origins
+] + [
+    f'https://{origin}' if not origin.startswith(('http://', 'https://')) else origin
+    for origin in origins
+] + [
+    origin
+    for origin in origins if origin.startswith(('http://', 'https://'))
+]
 
 # Application definition
 

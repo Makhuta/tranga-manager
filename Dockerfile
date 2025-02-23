@@ -11,6 +11,7 @@ WORKDIR /app
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     sqlite3 \
+    nginx \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip
@@ -34,6 +35,10 @@ ENV DJANGO_USERNAME=Admin
 ENV DJANGO_PASSWORD=tranga-admin
 ENV DJANGO_EMAIL=default@email.com
 ENV DATABASE_DIR=/app
+ENV CSRF_TRUSTED_ORIGINS="localhost:80,127.0.0.1:80"
+
+# Copy Nginx configuration file
+COPY nginx.conf /etc/nginx/nginx.conf
 
 RUN chmod +x /usr/bin/entrypoint.sh
 ENTRYPOINT ["entrypoint.sh"]
@@ -52,5 +57,5 @@ CMD sh -c " \
     fi && \
     # Start Django development server with custom port and settings \
     python manage.py collectstatic --noinput && \
-    python manage.py runserver 0.0.0.0:80"
-
+    gunicorn --bind 0.0.0.0:8000 server.wsgi:application & \
+    nginx -g 'daemon off;'"
